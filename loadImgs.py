@@ -17,9 +17,10 @@ import pandas as pd
 # Zooniverse Underwater World project number 5483
 proj_num = 5483
 os.chdir('..')
-tbl_list = pd.read_excel('CitSci_VideoList_New.xlsx')
+tbl_list = pd.read_excel('CitSci_VideoList_New2.xlsx')
 tbl_list.columns 
 tbl_list.ix[tbl_list['CLIPPED']=='yes']
+num_img = 12
 
 for idx, row in tbl_list.iterrows():
 #        break
@@ -37,9 +38,9 @@ for idx, row in tbl_list.iterrows():
     # grab 9 images from video and write out as jpeg
     vid = imageio.get_reader('./BetaTestingVideosClipped/%s' % row.clip_name)
     shots = vid.get_length()
-    nums = range((shots / 9) / 2, shots, (shots / 9))
+    num_lst = range((shots / num_img) / 2, shots, (shots / num_img))
     imgs = []
-    for num in nums:
+    for num in num_lst:
         imgs.append('shot_%s.jpeg' % (num))
         image = vid.get_data(num)
         imageio.imwrite('./%s/shot_%s.jpeg' % (row.UID,num), image)
@@ -111,3 +112,59 @@ for d in ds:
 d = 'LHLEC-115'
 f = 'LHLEC15_115GoProclip_4.mp4'
 os.stat('./processing_RD2/%s/%s'% (d,f)).st_size
+###############################################################################
+c = 0
+for f in have:
+    vid = f.split('.')[0].split('clip')[0]
+    if vid in tbl.clip_name.tolist():
+        c += 1
+    else:
+        print vid
+        
+tbl['clip_name'] = tbl.Filename.apply(lambda x: x.split('.')[0])
+'DVR150624_1055_001' in tbl.clip_name.tolist()
+
+for idx, row in tbl.iterrows():
+#    break
+    for f in have:
+        vid = f.split('.')[0].split('clip')[0]
+        if vid == row.clip_name:
+#            break
+            tbl.loc[idx,'clip_full'] = f
+
+here = a[0]
+boom = pd.DataFrame({'os_fns':have})
+tbl_list.columns.tolist()
+tbl_list.loc[tbl_list.Clipped_Filename.isin(boom.os_fns)]
+boom['raw_name'] = boom.os_fns.apply(lambda x: x.split('.')[0])
+new['raw_name'] = new.Clipped_Filename.apply(lambda x : x.split('.')[0])
+tbl_list.loc[:1101]
+tbl_list.loc[1201:1221]
+new = tbl_list.loc[:1101].copy()
+new = new.append(tbl_list.loc[1201:1221])
+
+a = pd.merge(boom, new, on='raw_name').raw_name
+boom.loc[~boom.raw_name.isin(a)].raw_name
+
+
+425         DVR150624_1055_001.mp4
+555     Dvr150829_1336_001clip.mp4
+642     NCCA15_01GoPro.MP4clip.mp4
+648     NCCA15_07GoPro.MP4clip.mp4
+699    STMR15_012GoPro.MP4clip.mp4
+709    STMR15_023GoPro.MP4clip.mp4
+741              STMT097_2clip.mp4
+
+425        DVR150624_1055_001
+555    Dvr150829_1336_001clip
+642            NCCA15_01GoPro
+648            NCCA15_07GoPro
+699           STMR15_012GoPro
+709           STMR15_023GoPro
+741             STMT097_2clip
+Name: raw_name, dtype: object
+
+new.loc[new.raw_name == 'DVR150624_1055_001']
+'DVR150624_1055_001' in new.raw_name.tolist()
+
+have = os.listdir('LBE_Analysis_Clipped_Videos')
