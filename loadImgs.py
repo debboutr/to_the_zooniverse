@@ -24,7 +24,7 @@ num_img = 12
 
 for idx, row in tbl_list.iterrows():
 #        break
-    print row.SiteID
+    print row.DLE_UID
     # create subject-set using the UID
     ttl = 'UID:%s' % row.UID
     # create subject-set
@@ -56,6 +56,45 @@ for idx, row in tbl_list.iterrows():
     os.chdir('..')
 
 ###############################################################################
+# new method for loading up Phase II videos into 1 SubjectSet!!
+# make 50 vids in different locations into jst one subject set..
+from shutil import copyfile
+tbl = pd.read_csv('PhaseIIBetaTestList_new.csv')
+tbl = tbl[tbl.BetaTestVid.notnull()]
+tbl = tbl[['DLE_UID','SiteID','BetaTestVid','clipped_files']]
+mani = pd.DataFrame(columns=['DLE_UID','SiteID','video'])
+for idx, group in tbl.groupby('DLE_UID'):
+#    print(idx)
+#    print(group)
+    for idx, row in group.iterrows():
+#        print idx
+        mani.loc[idx] = [row.DLE_UID, row.SiteID, os.path.join(os.getcwd(),row.clipped_files)]
+        copyfile('out/%s/%s' %(row.DLE_UID,row.clipped_files), 'upload/%s' % row.clipped_files)
+mani.to_csv('manifest.csv', index=False)
+
+set_call = 'panoptes subject-set create %s "PhaseII"' % (proj_num)
+subprocess.call(set_call)
+set_id_str = subprocess.check_output('panoptes subject-set ls -p %s' % proj_num)
+set_no = set_id_str.split("PhaseII")[0].split('\n')[-1].replace(' ','')
+os.chdir('upload')
+cmd = 'panoptes subject-set upload-subjects %s manifest.csv' % set_no
+subprocess.call(cmd)
+
+# above didn't work
+from panoptes_client import SubjectSet, Subject, Project, Panoptes
+
+Panoptes.connect(username='debbout.rick@epa.gov', password='Donsende1')
+project = Project.find(id = 5483)
+subject_set = SubjectSet.find(72471)
+subject = Subject()
+subject.links.project = project
+subject.add_location({'video/mp4': './8_B_trim_drop1_2.mp4'})
+subject.metadata['site_id'] = 'BOGUS'
+subject.save()
+subject_set.add(subject)
+
+###############################################################################
+
 # RE_FORMAT COLUMN WITH CLIPPED NAMES....NAMES IN TABLE DON'T MATCH UP W/ DIR
 
 tbl_list.drop('clip_name',axis=1,inplace=True)

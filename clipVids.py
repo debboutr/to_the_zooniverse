@@ -8,11 +8,14 @@ this is now a practice space, images being clipped w/ loadImgs.py
 """
 
 import os
+import math
 import pylab
 import imageio
+import subprocess
+from moviepy.editor import VideoFileClip
 
 for f in os.listdir('./vids'):    
-    break
+#    break
     vid = imageio.get_reader('./BetaTestingVideosClipped/%s' % f)
     shots = vid.get_length()
     nums = range((shots / 6) / 2, shots, (shots / 6))
@@ -25,28 +28,6 @@ for f in os.listdir('./vids'):
         fig.suptitle('{}/nimage #{}'.format(f,num), x=.5, y=1.1, fontsize=20)
         pylab.imshow(image)
     pylab.show()
-    
-    
-f = os.listdir('./vids')[1]
-f = 'bit_down2.mp4'
-
-from moviepy.editor import VideoFileClip
-clip = VideoFileClip('./%s' % f,audio=False).subclip(0,15)
-clip.write_videofile('bit_down2_clip.mp4')
-# easy!!
-# length of video 
-clip.duration
-
-os.getcwd()
-
-vid = imageio.get_reader('./test_out4.mp4')
-shots = vid.get_length()
-nums = range(0,shots,4)
-
-with imageio.get_writer('test_num.mp4',mode='I') as writer:
-    for num in nums:
-        img = vid.get_data(num)
-        writer.append_data(img)
 
 ''' ...when writing to .mp4...
 WARNING:root:IMAGEIO FFMPEG_WRITER WARNING: input image is not divisible by 
@@ -56,11 +37,7 @@ your input image divisible by the macro_block_size or set the macro_block_size
 to None (risking incompatibility). You may also see a FFMPEG warning concerning 
 speedloss due to data not being aligned.        
 '''
-imageio.get_writer?
 
-
-a = VideoFileClip('./test_out3.mp4')
-a.preview()
 
 imageio.imwrite('crop.jpeg', image[:,160:1765,:])
 
@@ -72,38 +49,6 @@ imageio.imwrite('crop.jpeg', image[:,160:1765,:])
 # ffprobe -v quiet -print_format json -show_format -show_streams test_out4.mp4 > op.json
 
 ################################################################################
-# Test frame rate
-#TODO: UID and SiteID
-TESTS = [ 'DVR150712_1230_001clip.mp4',
-         'DVR150719_1534_001clip.mp4',
-         'DVR150811_1230_001clip.mp4',
-         'DVR150917_1805_001clip.mp4',
-         'DVR150924_1230_001clip.mp4',
-         'DVR150924_1331_001clip.mp4',
-         'DVR150925_1048_001clip.mp4',
-         'DVR150925_1432_001clip.mp4',]
-
-tbl_list = pd.read_excel('CitSci_VideoList_New.xlsx')
-tbl_list.columns 
-
-work = tbl_list.loc[tbl_list['BetaTestVideos'] =='yes',['UID','SiteID','Clipped_Hyperlink']]
-
-def trim(string):
-    out = string.split('\\')[-1].split('.')[0]
-    return out if out[-4:]=='clip' else out + 'clip' # excel file misnomer
-# All filenames adjusted to have a lower case 'mp4' extension in PowerShell
-work['Clipped_Name'] = work['Clipped_Hyperlink'].apply(trim)
-inDir = [f.split('.')[0] for f in os.listdir('.') if 'clip.mp4' in f]
-for f in inDir:
-    if not f in work['Clipped_Name'].tolist():
-        print f
-
-from moviepy.editor import VideoFileClip
-for f in TESTS:
-    clip = VideoFileClip('./BetaTestingVideosClipped/%s' % f,
-                         audio=False).subclip(37,47)
-    clip.write_videofile('./test_frame_rate/duo_%s' % f)
-
 
 from panoptes_client import SubjectSet, Subject, Project, Panoptes
 
@@ -118,14 +63,7 @@ subject.metadata['site_id'] = 'NCCAGL10-1047'
 subject.save()
 subject_set.add(subject)
 
-
-os.listdir('./test_frame_rate')
-test_frame_rate\duo_DVR150925_1432_001clip.mp4
-
 ################################################################################
-import os
-import subprocess
-import pandas as pd
 
 here = 'C:/Users/Rdebbout/Downloads/vids_DUL/test_frame_rate/prepare_ye'
 tbl_list = pd.read_csv('CitSci_VideoList_beta.csv')
@@ -138,10 +76,6 @@ for f in os.listdir(here):
 ################################################################################
 # create 15s clips of the entire video
 # seems better to reduce resolution after the clip has been made 
-import os
-import subprocess
-import pandas as pd
-from moviepy.editor import VideoFileClip
 
 def window_video(fn='test', site='superior', where='./test'):
     out = '{}/{}'.format(where, site)
@@ -227,3 +161,49 @@ def make_windows(video, win_len=15)
     num_windows = int(round((video.duration/win_len),0))
     end = round(video.duration % 15,1) # return remainder
     clip_window_times = zip(range(0, 240, win_len),range(15, 255, win_len)) #max_len 4 min
+###############################################################################
+
+
+# code for phaseII
+
+xl = pd.read_excel('Phase II Video List.xlsx')
+xl = xl[xl.Beta_Test.notnull()]
+for idx, row in xl.iterrows():
+    out = 'out/{}'.format(row.DLE_UID)
+    if os.path.exists(out):
+        continue
+    if not os.path.exists(out):
+        os.mkdir(out)
+    fn = row.Trimmed_Filename
+    video = VideoFileClip('./Phase_II_Trimmed_Videos/%s.mp4' % fn, audio=False)
+    num_windows = int(math.ceil(video.duration/15))
+    end = round(video.duration % 15,1) # return remainder
+    clip_window_times = zip(range(0, 240, 15),range(15, 255, 15)) #max_len 4 min
+    fn = fn.replace(' ','')
+    for i, seconds in enumerate(clip_window_times[:num_windows]):
+        start = seconds[0]
+        stop = seconds[1]
+        if i == num_windows-1:
+            if end < 5:
+                continue # if 
+            stop = start + end
+        clip = video.subclip(start,stop)
+        clip.write_videofile('{0}/{1}_{2}_b4.mp4'.format(out, fn, (i+1)))
+        subprocess.call(('ffmpeg -i {0}/{1}_{2}_b4.mp4 -vf scale=960:540'
+                ' {0}/{1}_{2}.mp4').format(out, fn, (i+1)))
+        os.remove('{0}/{1}_{2}_b4.mp4'.format(out, fn, (i+1)))
+
+
+# Create table of filenames for each 'DLE_UID'
+
+tbl = pd.DataFrame(columns=['DLE_UID','clipped_files'])
+count = 0
+for d in os.listdir('out'):
+    print d
+    for f in os.listdir('out/{}'.format(d)):
+        print f
+        tbl.loc[count] = [d,f]
+        count += 1
+
+tbl.to_csv('segmented_video_names.csv',index=False)
+
