@@ -85,10 +85,11 @@ from panoptes_client import SubjectSet, Subject, Project, Panoptes
 
 Panoptes.connect(username='debbout.rick@epa.gov', password='Donsende1')
 project = Project.find(id = 5483)
+subject_set = SubjectSet.find(75635)
 subject_set = SubjectSet.find(72471)
 subject = Subject()
 subject.links.project = project
-subject.add_location({'video/mp4': './8_B_trim_drop1_2.mp4'})
+subject.add_location({'video/mp4': './NIAG-001_B_01_trim_1.mp4'})
 subject.metadata['site_id'] = 'BOGUS'
 subject.save()
 subject_set.add(subject)
@@ -207,3 +208,47 @@ new.loc[new.raw_name == 'DVR150624_1055_001']
 'DVR150624_1055_001' in new.raw_name.tolist()
 
 have = os.listdir('LBE_Analysis_Clipped_Videos')
+
+import panoptes_client
+workflow = project.links.workflows[4]
+sets_to_unlink = workflow.links.subject_sets
+for item in sets_to_unlink:
+    try:
+        workflow.remove_subject_sets(item.id)
+        print(item)
+    except panoptes_client.panoptes.PanoptesAPIException:
+        print('fail')
+        pass # take appropriate action
+        
+
+a=os.listdir('.')
+uno = a[1]
+
+set_call = 'panoptes subject-set create %s "%s"' % (proj_num, uno)
+subprocess.call(set_call)
+set_id_str = subprocess.check_output('panoptes subject-set ls -p %s' % proj_num)
+set_no = set_id_str.split(uno)[0].split('\n')[-1].replace(' ','')
+os.chdir(uno)
+cmd = 'panoptes subject-set upload-subjects %s manifest.csv' % set_no
+subprocess.call(cmd)
+
+
+
+for uno in os.listdir('.'):
+    print uno
+    mani = '{}/manifest.csv'.format(uno)
+    tbl = pd.read_csv(mani)
+    for _,row in tbl.iterrows():
+        row.Video = row.Video.split('/')[-1]
+    tbl.to_csv(mani, index=False)
+
+
+for uno in os.listdir('.'):
+    mani = '{}/manifest.csv'.format(uno)
+    tbl = pd.read_csv(mani)
+    if '/' in tbl.loc[0,'Video']:
+        print uno
+
+        for i,row in tbl.iterrows():
+            tbl.loc[i,'Video'] = tbl.loc[i,'Video'].split('/')[-1]
+        tbl.to_csv(mani, index=False)
