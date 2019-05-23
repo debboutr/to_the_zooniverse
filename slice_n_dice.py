@@ -2,14 +2,14 @@
 """
 Created on Mon Feb 12 09:11:41 2018
 
-TODO: add manifest file to directory of videos
-TODO: don't add vids that aren't certain length
+
 
 @author: Rdebbout
 """
 
 import os
 import sys
+import math
 from os.path import expanduser
 import subprocess
 import pandas as pd
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     vid_dir = askdirectory(title='Select directory where the videos are stored',
                                                initialdir=expanduser("~"))
     os.chdir(vid_dir)
-    out_dir = askdirectory(title='Select directory where the videos are stored',
+    out_dir = askdirectory(title='Select directory where to write out trimmed video folders',
                                                initialdir=expanduser("~"))
     ftypes = [("Acceptable Files",("*.csv","*.xlsx")),("All Files", "*.*")]
     f = askopenfilename(title='Select the control file ',
@@ -136,12 +136,24 @@ if __name__ == '__main__':
 
 
         video = VideoFileClip('{}.mp4'.format(row[fname]), audio=False)
+
+        columns = ['Video'] + keep
+        tbl = pd.DataFrame(columns=columns)
+
+        if video.duration < 15:
+            finished = '{0}/{1}.mp4'.format(out, row[fname])
+            subprocess.call(('ffmpeg -i {0}.mp4 -vf scale=640:360'
+                    ' {1}').format(row[fname], finished))
+            tbl_row = {fld:row[fld] for fld in keep}
+            tbl_row['Video'] = finished.split('/')[-1]
+            tbl = tbl.append(tbl_row, ignore_index=True)
+            tbl.to_csv('{}/manifest.csv'.format(out), index=False)
+            continue
+
         num_windows = int(math.ceil(video.duration/15))
         end = round(video.duration % 15,2) # return remainder        
         clip_window_times = zip(range(0, 480, 15),range(15, 495, 15)) #max_len 8 min
 #        out_files = []
-        columns = ['Video'] + keep
-        tbl = pd.DataFrame(columns=columns)
         for idx, seconds in enumerate(clip_window_times[:num_windows]):
 #            break
             idx += 1
