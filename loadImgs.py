@@ -35,9 +35,10 @@ if __name__ == '__main__':
 
     msg = 'Select directory where trimmed folders were written out to:'
     vid_dir = askdirectory(title=msg, initialdir=os.path.expanduser("~"))
+    os.chdir(vid_dir)
     total = len(os.listdir(vid_dir))
     for i, video in enumerate(os.listdir(vid_dir)):
-        print(f'processing....{i+1} of {total} directories')
+        print(f'processing.../{video}/....{i+1} of {total} directories')
         load(video)
 ##############################################################################
 # **CODE FOR SPLITTING INTO 9 IMAGES**
@@ -46,7 +47,7 @@ if __name__ == '__main__':
 #import pandas as pd
 #os.chdir('..')
 #tbl_list = pd.read_excel('CitSci_VideoList_New2.xlsx')
-#tbl_list.columns 
+#tbl_list.columns
 #tbl_list.ix[tbl_list['CLIPPED']=='yes']
 #num_img = 12
 #
